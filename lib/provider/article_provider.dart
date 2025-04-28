@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/article_model.dart';
-import '../services/api_service.dart';
+import 'package:news_app/models/article_model.dart';
+import 'package:news_app/services/api_service.dart';
 
 class ArticleProvider extends ChangeNotifier {
   List<Article>? _articles;
@@ -11,33 +11,24 @@ class ArticleProvider extends ChangeNotifier {
   List<Article>? get articles => _articles;
   List<Article>? get filteredArticles => _filteredArticles ?? _articles;
   String? get error => _error;
-
   bool get isLoading => _isLoading;
   bool get hasData => _articles != null && _articles!.isNotEmpty;
 
-  Future<void> init() async {
+  Future<void> fetchArticleByQuery(String query) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      _articles = await ApiService().getArticle();
+      _articles = await ApiService().getArticleByQuery(query);
+      _filteredArticles = _articles;
       _error = null;
     } catch (e) {
       _error = e.toString();
       _articles = null;
+      _filteredArticles = null;
     }
 
     _isLoading = false;
     notifyListeners();
   }
-void search(String searchedText){
-if(searchedText.isEmpty){
-  _filteredArticles = _articles;
-} else{
-  _filteredArticles = articles
-      ?.where((articles)=> articles.title!.toLowerCase().contains(searchedText.toLowerCase())).toList();
-}
-notifyListeners();
-}
-
 }
