@@ -38,11 +38,33 @@ class _HomePageState extends State<HomePage> {
               } else if (value.error != null) {
                 return Center(child: Text("Error: ${value.error}"));
               } else if (value.hasData) {
-                List<Article> articles = value.articles!;
-                return ListView.builder(
-                  itemCount: articles.length,
-                  itemBuilder: (context, index) =>
-                      customListTile(articles[index], context),
+                List<Article> articles = value.filteredArticles!;
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: TextField(
+                        onChanged: (searchedText){
+                        viewModel.search(searchedText);
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Search",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)
+                          ),
+                          suffixIcon: Icon(Icons.search)
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      // List<Article> articles = value.filteredArticles!;
+                      child: ListView.builder(
+                        itemCount: articles.length,
+                        itemBuilder: (context, index) =>
+                            customListTile(articles[index], context),
+                      ),
+                    ),
+                  ],
                 );
               } else {
                 return const Center(

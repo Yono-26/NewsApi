@@ -6,9 +6,12 @@ class ArticleProvider extends ChangeNotifier {
   List<Article>? _articles;
   String? _error;
   bool _isLoading = false;
+  List<Article>? _filteredArticles;
 
   List<Article>? get articles => _articles;
+  List<Article>? get filteredArticles => _filteredArticles ?? _articles;
   String? get error => _error;
+
   bool get isLoading => _isLoading;
   bool get hasData => _articles != null && _articles!.isNotEmpty;
 
@@ -27,4 +30,14 @@ class ArticleProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+void search(String searchedText){
+if(searchedText.isEmpty){
+  _filteredArticles = _articles;
+} else{
+  _filteredArticles = articles
+      ?.where((articles)=> articles.title!.toLowerCase().contains(searchedText.toLowerCase())).toList();
+}
+notifyListeners();
+}
+
 }
