@@ -4,7 +4,6 @@ import 'package:http/http.dart';
 import 'package:news_app/models/article_model.dart';
 
 class ApiService {
-  //Lets add the EndPoint url from the website
   final endPointUrl =
       "https://newsapi.org/v2/everything?q=apple&from=2025-04-16&to=2025-04-16&sortBy=popularity&apiKey=3931695ccc584a659e795dbc05dd5509";
 
@@ -19,8 +18,6 @@ class ApiService {
       Map<String, dynamic> json = jsonDecode(res.body);
 
       List<dynamic> body = json['articles'];
-
-      //This will use to allow the different articles from the json and convert into to List
 
       List<Article> articles =
       body.map((dynamic item) => Article.fromJson(item)).toList();
