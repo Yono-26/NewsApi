@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:news_app/componets/custom_list_tile.dart';
 import 'package:news_app/provider/article_provider.dart';
 import 'package:stacked/stacked.dart';
-import '../models/article_model.dart';
-import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,12 +11,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Timer? _debounce;
+  final TextEditingController _searchController = TextEditingController();
+
+  void _performSearch(ArticleProvider viewModel) {
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      viewModel.fetchArticleByQuery(query);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ArticleProvider>.reactive(
       viewModelBuilder: () => ArticleProvider(),
-      onViewModelReady: (viewModel) => viewModel.fetchArticleByQuery('apple'),
       builder: (context, viewModel, child) {
         return Scaffold(
           appBar: AppBar(
@@ -32,62 +37,51 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          body: viewModel.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : viewModel.error != null
-              ? Center(child: Text("Error: ${viewModel.error}"))
-              : viewModel.hasData
-              ? Column(
+          body: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: TextField(
-                  onChanged: (searchedText) {
-                    _onSearchChanged(searchedText, viewModel);
-                  },
+                  controller: _searchController,
+                  onSubmitted: (_) => _performSearch(viewModel),
                   decoration: InputDecoration(
                     hintText: "Search news...",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    suffixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () => _performSearch(viewModel),
+                    ),
                   ),
                 ),
               ),
               Expanded(
-                child: viewModel.filteredArticles!.isNotEmpty
-                    ? ListView.builder(
-                  itemCount: viewModel.filteredArticles!.length,
-                  itemBuilder: (context, index) => customListTile(
-                    viewModel.filteredArticles![index],
-                    context,
-                  ),
-                )
-                    : const Center(child: Text('No articles found.')),
+                child: Builder(
+                  builder: (_) {
+                    if (viewModel.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (viewModel.error != null) {
+                      return Center(child: Text("Error: ${viewModel.error}"));
+                    } else if (viewModel.filteredArticles != null &&
+                        viewModel.filteredArticles!.isNotEmpty) {
+                      return ListView.builder(
+                        itemCount: viewModel.filteredArticles!.length,
+                        itemBuilder: (context, index) => customListTile(
+                          viewModel.filteredArticles![index],
+                          context,
+                        ),
+                      );
+                    } else {
+                      return const Center(child: Text('Search for news articles'));
+                    }
+                  },
+                ),
               ),
             ],
-          )
-              : const Center(
-            child: Text('No articles available.'),
           ),
         );
       },
     );
-  }
-
-  void _onSearchChanged(String query, ArticleProvider viewModel) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    _debounce = Timer(const Duration(milliseconds: 1000), () {
-      if (query.isNotEmpty) {
-        viewModel.fetchArticleByQuery(query);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
   }
 }
