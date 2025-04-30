@@ -6,13 +6,33 @@ class ArticleProvider extends ChangeNotifier {
   List<Article>? _articles;
   String? _error;
   bool _isLoading = false;
+  bool _isCloseIcon = false;
   List<Article>? _filteredArticles;
 
   List<Article>? get articles => _articles;
   List<Article>? get filteredArticles => _filteredArticles ?? _articles;
   String? get error => _error;
   bool get isLoading => _isLoading;
+  bool get isCloseIcon => _isCloseIcon;
   bool get hasData => _articles != null && _articles!.isNotEmpty;
+  Future<void> fetchRecentNews() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _articles = await ApiService().getTopHeadlines();
+      _filteredArticles = _articles;
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      _articles = null;
+      _filteredArticles = null;
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
 
   Future<void> fetchArticleByQuery(String query) async {
     _isLoading = true;
@@ -27,8 +47,20 @@ class ArticleProvider extends ChangeNotifier {
       _articles = null;
       _filteredArticles = null;
     }
-
+    _isCloseIcon = true;
     _isLoading = false;
     notifyListeners();
   }
+
+
+  void updateSearchText(String text){
+    _isCloseIcon = text.isNotEmpty;
+    notifyListeners();
+  }
+ void closeSearch() {
+   _isCloseIcon = false;
+   fetchRecentNews();
+   _error = null;
+   notifyListeners();
+ }
 }

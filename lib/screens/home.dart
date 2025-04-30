@@ -15,14 +15,22 @@ class _HomePageState extends State<HomePage> {
 
   void _performSearch(ArticleProvider viewModel) {
     final query = _searchController.text.trim();
-    if (query.isNotEmpty) {
+
+    if (query.isNotEmpty && query.length >= 3) {
       viewModel.fetchArticleByQuery(query);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Please enter atleast 3 numbers to search"),
+        duration: Duration(seconds: 3),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ArticleProvider>.reactive(
+      onViewModelReady: (viewModel) => viewModel.fetchRecentNews(),
       viewModelBuilder: () => ArticleProvider(),
       builder: (context, viewModel, child) {
         return Scaffold(
@@ -41,19 +49,26 @@ class _HomePageState extends State<HomePage> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(10.0),
-                child: TextField(
+                child: TextFormField(
+                  onTapOutside: (e) => FocusScope.of(context).unfocus(),
                   controller: _searchController,
-                  onSubmitted: (_) => _performSearch(viewModel),
+                  onChanged: (text) => viewModel.updateSearchText(text),
+                  onFieldSubmitted: (_) => _performSearch(viewModel),
                   decoration: InputDecoration(
-                    hintText: "Search news...",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.search),
-                      onPressed: () => _performSearch(viewModel),
-                    ),
-                  ),
+                      hintText: "Search news...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      suffixIcon: viewModel.isCloseIcon
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                viewModel.closeSearch();
+                              },
+                              icon: Icon(Icons.close))
+                          : IconButton(
+                              onPressed: () => _performSearch(viewModel),
+                              icon: Icon(Icons.search))),
                 ),
               ),
               Expanded(
@@ -73,7 +88,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     } else {
-                      return const Center(child: Text('Search for news articles'));
+                      return const Center(
+                          child: Text('Search for news articles'));
                     }
                   },
                 ),
