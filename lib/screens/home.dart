@@ -12,6 +12,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   void _performSearch(ArticleProvider viewModel) {
     final query = _searchController.text.trim();
@@ -19,18 +20,39 @@ class _HomePageState extends State<HomePage> {
     if (query.isNotEmpty && query.length >= 3) {
       viewModel.fetchArticleByQuery(query);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Please enter atleast 3 numbers to search"),
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Please enter at least 3 characters to search"),
         duration: Duration(seconds: 3),
         backgroundColor: Colors.red,
       ));
     }
   }
 
+  void _setupScrollListener(ArticleProvider viewModel) {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200 &&
+          !viewModel.isLoading &&
+          viewModel.hasMore) {
+        viewModel.fetchMoreNews();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ViewModelBuilder<ArticleProvider>.reactive(
-      onViewModelReady: (viewModel) => viewModel.fetchRecentNews(),
+      onViewModelReady: (viewModel) {
+        viewModel.fetchRecentNews();
+        _setupScrollListener(viewModel);
+      },
       viewModelBuilder: () => ArticleProvider(),
       builder: (context, viewModel, child) {
         return Scaffold(
@@ -55,37 +77,54 @@ class _HomePageState extends State<HomePage> {
                   onChanged: (text) => viewModel.updateSearchText(text),
                   onFieldSubmitted: (_) => _performSearch(viewModel),
                   decoration: InputDecoration(
-                      hintText: "Search news...",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      suffixIcon: viewModel.isCloseIcon
-                          ? IconButton(
-                              onPressed: () {
-                                _searchController.clear();
-                                viewModel.closeSearch();
-                              },
-                              icon: Icon(Icons.close))
-                          : IconButton(
-                              onPressed: () => _performSearch(viewModel),
-                              icon: Icon(Icons.search))),
+                    hintText: "Search news...",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    suffixIcon: viewModel.isCloseIcon
+                        ? IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        viewModel.closeSearch();
+                      },
+                      icon: const Icon(Icons.close),
+                    )
+                        : IconButton(
+                      onPressed: () => _performSearch(viewModel),
+                      icon: const Icon(Icons.search),
+                    ),
+                  ),
                 ),
               ),
               Expanded(
                 child: Builder(
                   builder: (_) {
-                    if (viewModel.isLoading) {
+                    if (viewModel.isLoading && viewModel.articles.isEmpty) {
                       return const Center(child: CircularProgressIndicator());
                     } else if (viewModel.error != null) {
                       return Center(child: Text("Error: ${viewModel.error}"));
-                    } else if (viewModel.filteredArticles != null &&
-                        viewModel.filteredArticles!.isNotEmpty) {
+                    } else if (viewModel.articles.isNotEmpty) {
                       return ListView.builder(
-                        itemCount: viewModel.filteredArticles!.length,
-                        itemBuilder: (context, index) => customListTile(
-                          viewModel.filteredArticles![index],
-                          context,
-                        ),
+                        controller: _scrollController,
+                        itemCount: viewModel.articles.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index < viewModel.articles.length) {
+                            return customListTile(
+                              viewModel.articles[index],
+                              context,
+                            );
+                          } else {
+                            // Loader at the bottom
+                            return viewModel.hasMore
+                                ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                                : const SizedBox.shrink();
+                          }
+                        },
                       );
                     } else {
                       return const Center(
