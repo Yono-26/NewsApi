@@ -85,6 +85,7 @@ class ArticleProvider extends ChangeNotifier {
     _isCloseIcon = true;
     _isLoading = false;
     notifyListeners();
+    
   }
 
   void updateSearchText(String text) {
